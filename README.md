@@ -1,36 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ERD Studio
+
+Interactive Database Design Tool that translates Mermaid.js syntax to live diagrams and generates DDL scripts for various RDBMS.
+
+## Features
+
+- **Interactive Diagram Editor**: Drag-and-drop interface for database design
+- **Mermaid.js Integration**: Real-time parsing and generation of Mermaid ERD syntax
+- **DDL Generation**: Export schemas for MySQL, PostgreSQL, SQLite, SQL Server, and Oracle
+- **Live Synchronization**: Changes in diagram reflect in Mermaid code and vice versa
+- **Modern UI**: Clean, responsive design with Tailwind CSS
+
+## Technology Stack
+
+- **Frontend**: Next.js 15 with React 19
+- **Styling**: Tailwind CSS with Lucide icons
+- **Diagrams**: React Flow for interactive canvas
+- **Parsing**: Custom Mermaid.js parser
+- **Deployment**: Optimized for Vercel
 
 ## Getting Started
 
-First, run the development server:
+First, install dependencies:
+
+```bash
+npm install
+```
+
+Then, run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+src/
+├── app/                 # Next.js app router pages
+├── components/          # React components
+│   ├── diagram/        # Interactive diagram components
+│   └── editors/        # Code and DDL editors
+├── lib/                # Utility libraries
+│   ├── mermaid-parser.ts   # Mermaid ERD parser
+│   ├── ddl-generator.ts    # DDL generation
+│   └── utils.ts           # Common utilities
+└── types/              # TypeScript type definitions
+```
 
-## Learn More
+## Usage
 
-To learn more about Next.js, take a look at the following resources:
+1. **Live Diagram**: Design your database schema using the interactive canvas
+2. **Mermaid Code**: Edit the Mermaid syntax directly to update the diagram
+3. **DDL Script**: Generate and download SQL scripts for your target database
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Supported Database Types
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- MySQL
+- PostgreSQL
+- SQLite
+- SQL Server
+- Oracle
 
 ## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new) from the creators of Next.js.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Check out the [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

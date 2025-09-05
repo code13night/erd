@@ -1,103 +1,138 @@
-import Image from "next/image";
+'use client';
+
+import React, { useState, useCallback } from 'react';
+import { ERDCanvas } from '@/components/diagram/erd-canvas';
+import { MermaidEditor } from '@/components/editors/mermaid-editor';
+import { DDLViewer } from '@/components/editors/ddl-viewer';
+import { MermaidParser } from '@/lib/mermaid-parser';
+import { ERDData, Table, DatabaseType } from '@/types/erd';
+import { Database, Code, FileText, Plus } from 'lucide-react';
+
+const SAMPLE_MERMAID = `erDiagram
+    CUSTOMER {
+        string name
+        string custNumber
+        string sector
+    }
+    ORDER {
+        int orderNumber
+        string deliveryAddress
+    }
+    LINE-ITEM {
+        string productCode
+        int quantity
+        float pricePerUnit
+    }
+    
+    CUSTOMER ||--o{ ORDER : places
+    ORDER ||--|{ LINE-ITEM : contains`;
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [mermaidCode, setMermaidCode] = useState(SAMPLE_MERMAID);
+  const [erdData, setERDData] = useState<ERDData>(() => 
+    MermaidParser.parseERD(SAMPLE_MERMAID)
+  );
+  const [databaseType, setDatabaseType] = useState<DatabaseType>('mysql');
+  const [activeTab, setActiveTab] = useState<'diagram' | 'mermaid' | 'ddl'>('diagram');
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const handleMermaidChange = useCallback((code: string) => {
+    setMermaidCode(code);
+  }, []);
+
+  const handleERDChange = useCallback((newERDData: ERDData) => {
+    setERDData(newERDData);
+  }, []);
+
+  const handleDiagramChange = useCallback((newERDData: ERDData) => {
+    setERDData(newERDData);
+    const newMermaidCode = MermaidParser.generateMermaid(newERDData);
+    setMermaidCode(newMermaidCode);
+  }, []);
+
+  const handleTableEdit = useCallback((table: Table) => {
+    // TODO: Implement table editing modal
+    console.log('Edit table:', table);
+  }, []);
+
+  const tabs = [
+    { id: 'diagram', label: 'Live Diagram', icon: Database },
+    { id: 'mermaid', label: 'Mermaid Code', icon: Code },
+    { id: 'ddl', label: 'DDL Script', icon: FileText },
+  ] as const;
+
+  return (
+    <div className="h-screen flex flex-col bg-gray-50">
+      {/* Header */}
+      <div className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+              <Database className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold text-gray-900">ERD Studio</h1>
+              <p className="text-sm text-gray-500">Interactive Database Design Tool</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+              <Plus size={16} />
+              New Table
+            </button>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+      </div>
+
+      {/* Tab Navigation */}
+      <div className="flex-shrink-0 bg-white border-b border-gray-200">
+        <div className="flex">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
+                  activeTab === tab.id
+                    ? 'border-blue-600 text-blue-600 bg-blue-50'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <Icon size={16} />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-hidden">
+        {activeTab === 'diagram' && (
+          <ERDCanvas
+            erdData={erdData}
+            onTableEdit={handleTableEdit}
+            onDataChange={handleDiagramChange}
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
+        )}
+        
+        {activeTab === 'mermaid' && (
+          <MermaidEditor
+            value={mermaidCode}
+            onChange={handleMermaidChange}
+            onERDChange={handleERDChange}
           />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
+        )}
+        
+        {activeTab === 'ddl' && (
+          <DDLViewer
+            erdData={erdData}
+            databaseType={databaseType}
+            onDatabaseTypeChange={setDatabaseType}
           />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        )}
+      </div>
     </div>
   );
 }

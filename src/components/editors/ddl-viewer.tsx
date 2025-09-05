@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { DDLGenerator } from '@/lib/ddl-generator';
 import { ERDData, DatabaseType } from '@/types/erd';
-import { Copy, Download } from 'lucide-react';
+import { Copy, Download, Check } from 'lucide-react';
 
 interface DDLViewerProps {
   erdData: ERDData;
@@ -11,12 +11,12 @@ interface DDLViewerProps {
   onDatabaseTypeChange: (type: DatabaseType) => void;
 }
 
-const DATABASE_OPTIONS: { value: DatabaseType; label: string }[] = [
-  { value: 'mysql', label: 'MySQL' },
-  { value: 'postgresql', label: 'PostgreSQL' },
-  { value: 'sqlite', label: 'SQLite' },
-  { value: 'sqlserver', label: 'SQL Server' },
-  { value: 'oracle', label: 'Oracle' },
+const DATABASE_OPTIONS: { value: DatabaseType; label: string; color: string }[] = [
+  { value: 'mysql', label: 'MySQL', color: 'bg-orange-100 text-orange-800' },
+  { value: 'postgresql', label: 'PostgreSQL', color: 'bg-blue-100 text-blue-800' },
+  { value: 'sqlite', label: 'SQLite', color: 'bg-gray-100 text-gray-800' },
+  { value: 'sqlserver', label: 'SQL Server', color: 'bg-red-100 text-red-800' },
+  { value: 'oracle', label: 'Oracle', color: 'bg-purple-100 text-purple-800' },
 ];
 
 export const DDLViewer: React.FC<DDLViewerProps> = ({
@@ -54,47 +54,77 @@ export const DDLViewer: React.FC<DDLViewerProps> = ({
     URL.revokeObjectURL(url);
   };
 
+  const selectedDb = DATABASE_OPTIONS.find(db => db.value === databaseType);
+
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex-shrink-0 bg-gray-100 px-4 py-2 border-b">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-gray-700">Generated DDL</h3>
-          <div className="flex items-center gap-2">
-            <select
-              value={databaseType}
-              onChange={(e) => onDatabaseTypeChange(e.target.value as DatabaseType)}
-              className="text-xs px-2 py-1 border border-gray-300 rounded"
-            >
-              {DATABASE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            
-            <button
-              onClick={handleCopy}
-              className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              <Copy size={12} />
-              {copied ? 'Copied!' : 'Copy'}
-            </button>
-            
-            <button
-              onClick={handleDownload}
-              className="flex items-center gap-1 px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
-            >
-              <Download size={12} />
-              Download
-            </button>
+    <div className="h-full flex flex-col bg-white min-h-0">
+      {/* Database Selector */}
+      <div className="flex-shrink-0 bg-gray-50 border-b border-gray-200 px-3 py-2">
+        <div className="space-y-2">
+          <div className="text-xs font-medium text-gray-600 mb-2">Target Database:</div>
+          <div className="grid grid-cols-1 gap-1">
+            {DATABASE_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => onDatabaseTypeChange(option.value)}
+                className={`text-xs px-2 py-1 rounded text-left transition-colors ${
+                  databaseType === option.value
+                    ? option.color + ' ring-1 ring-current'
+                    : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
         </div>
       </div>
+
+      {/* Action Buttons */}
+      <div className="flex-shrink-0 bg-white border-b border-gray-200 px-3 py-2">
+        <div className="flex gap-2">
+          <button
+            onClick={handleCopy}
+            className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex-1 justify-center"
+          >
+            {copied ? <Check size={12} /> : <Copy size={12} />}
+            {copied ? 'Copied!' : 'Copy'}
+          </button>
+          
+          <button
+            onClick={handleDownload}
+            className="flex items-center gap-1 px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors flex-1 justify-center"
+          >
+            <Download size={12} />
+            Download
+          </button>
+        </div>
+      </div>
       
-      <div className="flex-1 relative">
-        <pre className="w-full h-full p-4 font-mono text-sm overflow-auto bg-white border-none outline-none">
-          <code className="text-gray-800">{ddlCode}</code>
-        </pre>
+      {/* DDL Code */}
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <div className="flex-1 overflow-y-auto overflow-x-auto">
+          <pre className="p-3 font-mono text-xs bg-white text-gray-800 leading-relaxed whitespace-pre-wrap min-h-full">
+            <code>{ddlCode}</code>
+          </pre>
+        </div>
+      </div>
+
+      {/* Stats Footer */}
+      <div className="flex-shrink-0 bg-gray-50 border-t border-gray-200 px-3 py-2">
+        <div className="text-xs text-gray-500">
+          <div className="flex justify-between">
+            <span>{erdData.tables.length} tables</span>
+            <span>{erdData.relationships.length} relations</span>
+          </div>
+          {selectedDb && (
+            <div className="mt-1">
+              <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${selectedDb.color}`}>
+                {selectedDb.label}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

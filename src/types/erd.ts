@@ -27,6 +27,7 @@ export interface Relationship {
   fromColumn: string;
   toColumn: string;
   type: 'one-to-one' | 'one-to-many' | 'many-to-many';
+  label?: string;
 }
 
 export interface ERDData {

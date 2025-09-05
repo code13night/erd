@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useEffect } from 'react';
 import {
   ReactFlow,
   Node,
@@ -13,6 +13,7 @@ import {
   Connection,
   MiniMap,
   NodeChange,
+  BackgroundVariant,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -36,10 +37,10 @@ export const ERDCanvas: React.FC<ERDCanvasProps> = ({
 }) => {
   // Convert ERD data to React Flow nodes and edges
   const initialNodes: Node[] = useMemo(() => {
-    return erdData.tables.map((table) => ({
+    return erdData.tables.map((table, index) => ({
       id: table.id,
       type: 'tableNode',
-      position: table.position,
+      position: table.position || { x: (index % 4) * 300, y: Math.floor(index / 4) * 200 + 100 },
       data: {
         table,
         onEdit: onTableEdit,
@@ -48,20 +49,36 @@ export const ERDCanvas: React.FC<ERDCanvasProps> = ({
   }, [erdData.tables, onTableEdit]);
 
   const initialEdges: Edge[] = useMemo(() => {
-    return erdData.relationships.map((relationship) => ({
-      id: relationship.id,
-      source: relationship.fromTable,
-      target: relationship.toTable,
-      type: 'smoothstep',
-      animated: true,
-      label: `${relationship.fromColumn} → ${relationship.toColumn}`,
-      labelStyle: { fontSize: 12, fontWeight: 500 },
-      style: { stroke: '#374151', strokeWidth: 2 },
-    }));
-  }, [erdData.relationships]);
+    return erdData.relationships.map((relationship) => {
+      const sourceTable = erdData.tables.find(t => t.name === relationship.fromTable);
+      const targetTable = erdData.tables.find(t => t.name === relationship.toTable);
 
-  const [nodes, , onNodesChange] = useNodesState(initialNodes);
+      return {
+        id: relationship.id,
+        source: sourceTable?.id || relationship.fromTable,
+        target: targetTable?.id || relationship.toTable,
+        type: 'smoothstep',
+        animated: true,
+        label: relationship.label || `${relationship.type}`,
+        labelStyle: { fontSize: 10, fontWeight: 500 },
+        style: { stroke: '#374151', strokeWidth: 2 },
+      };
+    });
+  }, [erdData.relationships, erdData.tables]);
+
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  // Update nodes and edges when ERD data changes
+  useEffect(() => {
+    console.log('Updating nodes:', initialNodes);
+    setNodes(initialNodes);
+  }, [initialNodes, setNodes]);
+
+  useEffect(() => {
+    console.log('Updating edges:', initialEdges);
+    setEdges(initialEdges);
+  }, [initialEdges, setEdges]);
 
   const onConnect = useCallback(
     (params: Connection) => {
@@ -70,33 +87,39 @@ export const ERDCanvas: React.FC<ERDCanvasProps> = ({
     [setEdges]
   );
 
-  // Update ERD data when nodes change
+  // Update ERD data when nodes change (for dragging)
   const handleNodesChange = useCallback(
     (changes: NodeChange[]) => {
       onNodesChange(changes);
-      
-      // Update table positions in ERD data
-      const updatedTables = erdData.tables.map((table) => {
-        const node = nodes.find((n) => n.id === table.id);
-        if (node) {
-          return {
-            ...table,
-            position: node.position,
-          };
-        }
-        return table;
-      });
-
-      onDataChange({
-        ...erdData,
-        tables: updatedTables,
-      });
     },
-    [onNodesChange, erdData, nodes, onDataChange]
+    [onNodesChange]
   );
 
   return (
-    <div className="w-full h-full bg-gray-50">
+    <div className="w-full h-full bg-gradient-to-br from-gray-50 to-gray-100 relative">
+      {/* Canvas Info Overlay */}
+      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10">
+        <div className="bg-white/90 backdrop-blur-sm border border-gray-200 rounded-lg px-3 py-1.5 shadow-sm">
+          <div className="text-xs text-gray-600 text-center">
+            <span className="font-medium">{erdData.tables.length}</span> tables, <span className="font-medium">{erdData.relationships.length}</span> relationships
+            <br />
+            <span className="text-[10px] text-gray-400">Nodes: {nodes.length}, Edges: {edges.length}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Debug info when no tables */}
+      {erdData.tables.length === 0 && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center max-w-md">
+            <h3 className="text-sm font-medium text-yellow-800 mb-2">No Tables Found</h3>
+            <p className="text-xs text-yellow-700">
+              Try editing the Mermaid code to add tables. Check the browser console for parsing errors.
+            </p>
+          </div>
+        </div>
+      )}
+
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -104,15 +127,29 @@ export const ERDCanvas: React.FC<ERDCanvasProps> = ({
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         nodeTypes={nodeTypes}
-        fitView
-        className="bg-gray-50"
+        fitView={nodes.length > 0}
+        className="bg-transparent"
+        minZoom={0.1}
+        maxZoom={2}
       >
-        <Background color="#aaa" gap={16} />
-        <Controls />
+        <Background 
+          color="#e5e7eb" 
+          gap={20} 
+          size={1}
+          variant={BackgroundVariant.Dots}
+        />
+        <Controls 
+          className="!bg-white !border-gray-300 !shadow-lg"
+          showZoom={true}
+          showFitView={true}
+          showInteractive={true}
+        />
         <MiniMap
-          className="!bg-white !border-gray-300"
+          className="!bg-white/95 !border-gray-300 !shadow-lg !rounded-lg"
           nodeColor="#3b82f6"
           maskColor="rgba(0, 0, 0, 0.1)"
+          pannable
+          zoomable
         />
       </ReactFlow>
     </div>

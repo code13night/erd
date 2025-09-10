@@ -135,7 +135,7 @@ export const DataTypePicker: React.FC<DataTypePickerProps> = ({
     }
   };
 
-  const handleInputBlur = (e: React.FocusEvent) => {
+  const handleInputBlur = () => {
     console.log('DataTypePicker - Input blur, committingRef:', committingRef.current);
     // Delay the blur to allow dropdown clicks
     setTimeout(() => {

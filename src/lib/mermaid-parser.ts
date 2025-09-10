@@ -143,16 +143,7 @@ export class MermaidParser {
     const fromColumn = 'id'; // Usually the primary key
     
     // Infer foreign key column name based on common naming patterns
-    let toColumn = `${fromTable.toLowerCase()}_id`;
-    
-    // Alternative patterns to check
-    const alternativePatterns = [
-      `${fromTable}Id`,
-      `${fromTable}_id`,
-      `${fromTable.toLowerCase()}Id`,
-      `id_${fromTable.toLowerCase()}`,
-      fromTable.toLowerCase()
-    ];
+    const toColumn = `${fromTable.toLowerCase()}_id`;
     
     const relationship = {
       id: `rel_${Date.now()}_${Math.random()}`,

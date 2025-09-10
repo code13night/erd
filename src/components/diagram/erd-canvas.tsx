@@ -14,8 +14,11 @@ import {
   MiniMap,
   NodeChange,
   BackgroundVariant,
+  useReactFlow,
+  ControlButton,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { RotateCcw } from 'lucide-react';
 
 import { TableNode } from './table-node';
 import { ERDData, Table } from '@/types/erd';
@@ -28,6 +31,35 @@ interface ERDCanvasProps {
 
 const nodeTypes = {
   tableNode: TableNode,
+};
+
+// Custom Reset Zoom Control Component
+const ResetZoomControl: React.FC = () => {
+  const { setViewport } = useReactFlow();
+  
+  const resetZoom = () => {
+    setViewport({ x: 0, y: 0, zoom: 0.75 });
+  };
+
+  return (
+    <ControlButton onClick={resetZoom} title="Reset to 75%">
+      <RotateCcw size={16} />
+    </ControlButton>
+  );
+};
+
+// Initial Zoom Setup Component
+const InitialZoomSetup: React.FC = () => {
+  const { setViewport } = useReactFlow();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setViewport({ x: 0, y: 0, zoom: 0.75 });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [setViewport]);
+
+  return null;
 };
 
 export const ERDCanvas: React.FC<ERDCanvasProps> = ({
@@ -197,30 +229,35 @@ export const ERDCanvas: React.FC<ERDCanvasProps> = ({
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         nodeTypes={nodeTypes}
-        fitView={nodes.length > 0}
+        fitView={false}
+        defaultViewport={{ x: 0, y: 0, zoom: 0.75 }}
         className="bg-transparent"
         minZoom={0.1}
         maxZoom={2}
       >
         <Background 
-          color="#e5e7eb" 
-          gap={20} 
-          size={1}
           variant={BackgroundVariant.Dots}
+          gap={16}
+          size={1}
+          color="#e5e7eb"
         />
         <Controls 
           className="!bg-white !border-gray-300 !shadow-lg"
           showZoom={true}
           showFitView={true}
           showInteractive={true}
-        />
+        >
+          <ResetZoomControl />
+        </Controls>
         <MiniMap
           className="!bg-white/95 !border-gray-300 !shadow-lg !rounded-lg"
           nodeColor="#3b82f6"
           maskColor="rgba(0, 0, 0, 0.1)"
           pannable
           zoomable
+          position="top-right"
         />
+        <InitialZoomSetup />
       </ReactFlow>
     </div>
   );

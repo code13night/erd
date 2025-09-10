@@ -134,13 +134,28 @@ export class MermaidParser {
     if (!fromTable || !toTable) {
       return null;
     }
+
+    // Smart column inference
+    const fromColumn = 'id'; // Usually the primary key
+    
+    // Infer foreign key column name based on common naming patterns
+    let toColumn = `${fromTable.toLowerCase()}_id`;
+    
+    // Alternative patterns to check
+    const alternativePatterns = [
+      `${fromTable}Id`,
+      `${fromTable}_id`,
+      `${fromTable.toLowerCase()}Id`,
+      `id_${fromTable.toLowerCase()}`,
+      fromTable.toLowerCase()
+    ];
     
     const relationship = {
       id: `rel_${Date.now()}_${Math.random()}`,
       fromTable,
       toTable,
-      fromColumn: 'id',
-      toColumn: `${fromTable.toLowerCase()}_id`,
+      fromColumn,
+      toColumn,
       type,
       label: label.trim()
     };

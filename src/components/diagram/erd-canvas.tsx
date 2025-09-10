@@ -53,15 +53,66 @@ export const ERDCanvas: React.FC<ERDCanvasProps> = ({
       const sourceTable = erdData.tables.find(t => t.name === relationship.fromTable);
       const targetTable = erdData.tables.find(t => t.name === relationship.toTable);
 
+      if (!sourceTable || !targetTable) {
+        return {
+          id: relationship.id,
+          source: relationship.fromTable,
+          target: relationship.toTable,
+          type: 'smoothstep',
+          animated: true,
+          label: relationship.label || `${relationship.type}`,
+          labelStyle: { fontSize: 10, fontWeight: 500 },
+          style: { stroke: '#374151', strokeWidth: 2 },
+        };
+      }
+
+      // Find the specific columns for the relationship
+      const sourceColumn = sourceTable.columns.find(col => 
+        col.isPrimaryKey || col.name === relationship.fromColumn
+      ) || sourceTable.columns.find(col => col.isPrimaryKey); // fallback to PK
+
+      const targetColumn = targetTable.columns.find(col => 
+        col.isForeignKey && (
+          col.name === relationship.toColumn || 
+          col.name.toLowerCase().includes(sourceTable.name.toLowerCase()) ||
+          col.name.toLowerCase().includes('id')
+        )
+      );
+
+      // Determine source and target handles
+      let sourceHandle = `${sourceTable.id}-bottom`; // default
+      let targetHandle = `${targetTable.id}-top`; // default
+
+      if (sourceColumn && (sourceColumn.isPrimaryKey || sourceColumn.isUnique)) {
+        sourceHandle = `${sourceTable.id}-${sourceColumn.name}-source`;
+      }
+
+      if (targetColumn && targetColumn.isForeignKey) {
+        targetHandle = `${targetTable.id}-${targetColumn.name}-target`;
+      }
+
       return {
         id: relationship.id,
-        source: sourceTable?.id || relationship.fromTable,
-        target: targetTable?.id || relationship.toTable,
+        source: sourceTable.id,
+        target: targetTable.id,
+        sourceHandle,
+        targetHandle,
         type: 'smoothstep',
         animated: true,
         label: relationship.label || `${relationship.type}`,
-        labelStyle: { fontSize: 10, fontWeight: 500 },
-        style: { stroke: '#374151', strokeWidth: 2 },
+        labelStyle: { 
+          fontSize: 10, 
+          fontWeight: 500,
+          fill: '#374151',
+          backgroundColor: 'rgba(255, 255, 255, 0.8)',
+          padding: '2px 4px',
+          borderRadius: '3px'
+        },
+        style: { 
+          stroke: relationship.type === 'one-to-many' ? '#059669' : 
+                 relationship.type === 'one-to-one' ? '#DC2626' : '#7C3AED', 
+          strokeWidth: 2 
+        },
       };
     });
   }, [erdData.relationships, erdData.tables]);

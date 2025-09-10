@@ -35,6 +35,25 @@ export const ERDCanvas: React.FC<ERDCanvasProps> = ({
   onTableEdit,
   onDataChange,
 }) => {
+  // Handle table edits and propagate changes
+  const handleTableEdit = useCallback((updatedTable: Table) => {
+    console.log('Table edited:', updatedTable);
+    
+    // Update the ERD data with the modified table
+    const updatedTables = erdData.tables.map(table => 
+      table.id === updatedTable.id ? updatedTable : table
+    );
+    
+    const updatedERDData = {
+      ...erdData,
+      tables: updatedTables
+    };
+    
+    // Propagate changes to parent
+    onDataChange(updatedERDData);
+    onTableEdit(updatedTable);
+  }, [erdData, onDataChange, onTableEdit]);
+
   // Convert ERD data to React Flow nodes and edges
   const initialNodes: Node[] = useMemo(() => {
     return erdData.tables.map((table, index) => ({
@@ -43,10 +62,10 @@ export const ERDCanvas: React.FC<ERDCanvasProps> = ({
       position: table.position || { x: (index % 4) * 300, y: Math.floor(index / 4) * 200 + 100 },
       data: {
         table,
-        onEdit: onTableEdit,
+        onEdit: handleTableEdit,
       },
     }));
-  }, [erdData.tables, onTableEdit]);
+  }, [erdData.tables, handleTableEdit]);
 
   const initialEdges: Edge[] = useMemo(() => {
     return erdData.relationships.map((relationship) => {

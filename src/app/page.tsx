@@ -46,8 +46,9 @@ export default function Home() {
   }, []);
 
   const handleTableEdit = useCallback((table: Table) => {
-    // TODO: Implement table editing modal
-    console.log('Edit table:', table);
+    console.log('Table edited in main app:', table);
+    // This will be handled by handleDiagramChange automatically
+    // since ERDCanvas will call onDataChange with the updated ERD data
   }, []);
 
   return (

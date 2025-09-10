@@ -75,14 +75,18 @@ export class MermaidParser {
     const parts = cleaned.split(/\s+/);
     if (parts.length < 2) return null;
     
-    const type = parts[0];
-    const name = parts[1];
+    let type = parts[0];
+    let name = parts[1];
     const constraints = parts.slice(2).join(' ');
+    
+    // Ensure we have valid type and name
+    if (!type || type.trim() === '') type = 'string';
+    if (!name || name.trim() === '') name = 'column';
     
     return {
       id: `${name}_${Date.now()}_${Math.random()}`,
-      name,
-      type,
+      name: name.trim(),
+      type: type.trim(),
       isPrimaryKey: constraints.includes('PK'),
       isForeignKey: constraints.includes('FK'),
       isNotNull: constraints.includes('NOT NULL') || constraints.includes('PK'),
@@ -157,7 +161,7 @@ export class MermaidParser {
       fromColumn,
       toColumn,
       type,
-      label: label.trim()
+      label: label.trim().replace(/^["']|["']$/g, '') // Remove surrounding quotes
     };
     
     return relationship;
@@ -175,19 +179,24 @@ export class MermaidParser {
     for (const table of erdData.tables) {
       mermaid += `    ${table.name} {\n`;
       for (const column of table.columns) {
-        mermaid += `        ${column.type} ${column.name}`;
+        // Ensure type is not empty
+        const columnType = column.type && column.type.trim() !== '' ? column.type : 'string';
+        const columnName = column.name && column.name.trim() !== '' ? column.name : 'column';
+        
+        mermaid += `        ${columnType} ${columnName}`;
         if (column.isPrimaryKey) mermaid += ' PK';
         if (column.isForeignKey) mermaid += ' FK';
         if (column.isNotNull && !column.isPrimaryKey) mermaid += ' "NOT NULL"';
         if (column.isUnique && !column.isPrimaryKey) mermaid += ' "UNIQUE"';
+        if (column.defaultValue) mermaid += ` "DEFAULT ${column.defaultValue}"`;
         mermaid += '\n';
       }
-      mermaid += '    }\n\n';
+      mermaid += '    }\n';
     }
     
     // Add relationships
     if (erdData.relationships.length > 0) {
-      mermaid += '    %% Relationships\n';
+      mermaid += '\n';
       for (const rel of erdData.relationships) {
         let relationSymbol = '';
         switch (rel.type) {
@@ -201,7 +210,16 @@ export class MermaidParser {
             relationSymbol = '}o--o{';
             break;
         }
-        mermaid += `    ${rel.fromTable} ${relationSymbol} ${rel.toTable} : "${rel.fromColumn} to ${rel.toColumn}"\n`;
+        
+        // Clean label and avoid double quotes
+        let relationLabel = rel.label || `${rel.fromColumn} to ${rel.toColumn}`;
+        relationLabel = relationLabel.replace(/^["']|["']$/g, ''); // Remove any existing quotes
+        
+        mermaid += `    ${rel.fromTable} ${relationSymbol} ${rel.toTable}`;
+        if (relationLabel) {
+          mermaid += ` : "${relationLabel}"`;
+        }
+        mermaid += '\n';
       }
     }
     

@@ -87,19 +87,12 @@ export const TableNode: React.FC<TableNodeProps> = ({ data }) => {
       if (editValues) {
         const currentColumn = table.columns.find(col => col.id === editingColumn);
         if (currentColumn) {
-          // Get the new value, trim it, and provide fallback
           let newValue = editValues[editingColumnField].trim();
-          
           // For type field, ensure we have a valid value
           if (editingColumnField === 'type' && (!newValue || newValue === '')) {
-            newValue = currentColumn.type || 'string'; // Fallback to previous or default
+            newValue = currentColumn.type || 'string';
           }
-          
-          // For name field, ensure we have a valid value
-          if (editingColumnField === 'name' && (!newValue || newValue === '')) {
-            newValue = currentColumn.name || 'column'; // Fallback to previous or default
-          }
-          
+          // For name field, allow empty string (do not fallback)
           console.log('Final new value:', newValue);
           const updatedColumns = table.columns.map(col => 
             col.id === editingColumn 
@@ -136,6 +129,21 @@ export const TableNode: React.FC<TableNodeProps> = ({ data }) => {
 
   const handleColumnKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
+      // If editing name and value is empty, reset to previous value
+      if (
+        editingColumn &&
+        editingColumnField === 'name' &&
+        (!columnEditValues[editingColumn]?.name || columnEditValues[editingColumn]?.name.trim() === '')
+      ) {
+        // Reset to previous value
+        setColumnEditValues(prev => ({
+          ...prev,
+          [editingColumn]: {
+            ...prev[editingColumn],
+            name: table.columns.find(col => col.id === editingColumn)?.name || ''
+          }
+        }));
+      }
       handleColumnSave();
     } else if (e.key === 'Escape') {
       handleColumnCancel();
@@ -285,7 +293,11 @@ export const TableNode: React.FC<TableNodeProps> = ({ data }) => {
                 <div className="flex items-center gap-1 flex-1">
                   <input
                     ref={columnInputRef}
-                    value={columnEditValues[column.id]?.name || column.name}
+                    value={
+                      columnEditValues[column.id]?.name !== undefined
+                        ? columnEditValues[column.id]?.name
+                        : column.name
+                    }
                     onChange={(e) => handleColumnChange(column.id, 'name', e.target.value)}
                     onKeyDown={handleColumnKeyDown}
                     onBlur={handleColumnSave}
@@ -297,9 +309,10 @@ export const TableNode: React.FC<TableNodeProps> = ({ data }) => {
                   onClick={() => handleColumnEdit(column.id, 'name')}
                   className={`truncate text-left flex-1 hover:bg-blue-100 px-1 py-0.5 rounded transition-colors ${
                     column.isPrimaryKey ? 'font-semibold text-gray-900' : 'text-gray-700'
-                  }`}
+                  } ${!column.name || column.name.trim() === '' ? 'text-red-500 bg-red-50' : ''}`}
+                  title={!column.name || column.name.trim() === '' ? 'Column name required - click to set' : 'Click to edit column name'}
                 >
-                  {column.name}
+                  {!column.name || column.name.trim() === '' ? 'COLUMN NAME?' : column.name}
                 </button>
               )}
             </div>

@@ -139,18 +139,31 @@ export class MermaidParser {
       return null;
     }
 
-    // Smart column inference
-    const fromColumn = 'id'; // Usually the primary key
+    // Smart column inference for foreign key relationships
+    // In a one-to-many relationship (User ||--o{ Post), 
+    // the "many" side (Post) should have the foreign key referencing the "one" side (User)
+    let foreignKeyTable, referencedTable, foreignKeyColumn, referencedColumn;
     
-    // Infer foreign key column name based on common naming patterns
-    const toColumn = `${fromTable.toLowerCase()}_id`;
+    if (type === 'one-to-many') {
+      // fromTable is the "one" side (e.g., User), toTable is the "many" side (e.g., Post)
+      referencedTable = fromTable;  // User
+      foreignKeyTable = toTable;    // Post
+      referencedColumn = 'id';      // User.id
+      foreignKeyColumn = `${fromTable.toLowerCase()}_id`; // Post.user_id
+    } else {
+      // For other relationship types, keep original logic
+      referencedTable = fromTable;
+      foreignKeyTable = toTable;
+      referencedColumn = 'id';
+      foreignKeyColumn = `${fromTable.toLowerCase()}_id`;
+    }
     
     const relationship = {
       id: `rel_${Date.now()}_${Math.random()}`,
-      fromTable,
-      toTable,
-      fromColumn,
-      toColumn,
+      fromTable: referencedTable,    // Table being referenced (e.g., User)
+      toTable: foreignKeyTable,      // Table with foreign key (e.g., Post)
+      fromColumn: referencedColumn,  // Referenced column (e.g., User.id)
+      toColumn: foreignKeyColumn,    // Foreign key column (e.g., Post.user_id)
       type,
       label: label.trim().replace(/^["']|["']$/g, '') // Remove surrounding quotes
     };

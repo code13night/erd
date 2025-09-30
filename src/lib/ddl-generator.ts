@@ -3,6 +3,7 @@ import { ERDData, Table, DatabaseType } from '@/types/erd';
 export class DDLGenerator {
   static generateDDL(erdData: ERDData, dbType: DatabaseType): string {
     let ddl = '';
+    const usedConstraintNames = new Set<string>();
     
     // Add header comment
     ddl += `-- Generated DDL for ${dbType.toUpperCase()}\n`;
@@ -14,9 +15,9 @@ export class DDLGenerator {
       ddl += '\n\n';
     }
     
-    // Generate foreign key constraints
+    // Generate foreign key constraints with unique constraint names
     for (const relationship of erdData.relationships) {
-      const constraint = this.generateForeignKeyConstraint(relationship, erdData, dbType);
+      const constraint = this.generateForeignKeyConstraint(relationship, erdData, dbType, usedConstraintNames);
       if (constraint) {
         ddl += constraint + '\n\n';
       }
@@ -72,19 +73,81 @@ export class DDLGenerator {
       toColumn: string;
     },
     erdData: ERDData,
-    dbType: DatabaseType
+    dbType: DatabaseType,
+    usedConstraintNames: Set<string>
   ): string | null {
-    const fromTable = erdData.tables.find(t => t.name === relationship.fromTable);
-    const toTable = erdData.tables.find(t => t.name === relationship.toTable);
+    const referencedTable = erdData.tables.find(t => t.name === relationship.fromTable);
+    const foreignKeyTable = erdData.tables.find(t => t.name === relationship.toTable);
     
-    if (!fromTable || !toTable) return null;
+    if (!referencedTable || !foreignKeyTable) return null;
     
-    const constraintName = `FK_${relationship.fromTable}_${relationship.toTable}`;
+    // Generate a descriptive and unique constraint name
+    const constraintName = this.generateUniqueConstraintName(
+      relationship.toTable,
+      relationship.toColumn,
+      relationship.fromTable,
+      relationship.fromColumn,
+      usedConstraintNames
+    );
     
-    return `ALTER TABLE ${this.quoteIdentifier(relationship.fromTable, dbType)}
+    // Add the constraint name to the used set
+    usedConstraintNames.add(constraintName);
+    
+    // Add foreign key constraint to the table that should contain the foreign key
+    return `ALTER TABLE ${this.quoteIdentifier(relationship.toTable, dbType)}
     ADD CONSTRAINT ${this.quoteIdentifier(constraintName, dbType)}
-    FOREIGN KEY (${this.quoteIdentifier(relationship.fromColumn, dbType)})
-    REFERENCES ${this.quoteIdentifier(relationship.toTable, dbType)} (${this.quoteIdentifier(relationship.toColumn, dbType)});`;
+    FOREIGN KEY (${this.quoteIdentifier(relationship.toColumn, dbType)})
+    REFERENCES ${this.quoteIdentifier(relationship.fromTable, dbType)} (${this.quoteIdentifier(relationship.fromColumn, dbType)});`;
+  }
+  
+  private static generateUniqueConstraintName(
+    foreignKeyTable: string,
+    foreignKeyColumn: string,
+    referencedTable: string,
+    referencedColumn: string,
+    usedConstraintNames: Set<string>
+  ): string {
+    // Clean table and column names for constraint naming (remove special characters)
+    const cleanFkTable = foreignKeyTable.replace(/[^a-zA-Z0-9_]/g, '');
+    const cleanFkColumn = foreignKeyColumn.replace(/[^a-zA-Z0-9_]/g, '');
+    const cleanRefTable = referencedTable.replace(/[^a-zA-Z0-9_]/g, '');
+    const cleanRefColumn = referencedColumn.replace(/[^a-zA-Z0-9_]/g, '');
+    
+    // Try different naming patterns until we find a unique one
+    const namingPatterns = [
+      // Pattern 1: FK_[table]_[column]_[referenced_table]_[referenced_column]
+      `FK_${cleanFkTable}_${cleanFkColumn}_${cleanRefTable}_${cleanRefColumn}`,
+      // Pattern 2: FK_[table]_[column]_[referenced_table]
+      `FK_${cleanFkTable}_${cleanFkColumn}_${cleanRefTable}`,
+      // Pattern 3: FK_[table]_[referenced_table]_[column]
+      `FK_${cleanFkTable}_${cleanRefTable}_${cleanFkColumn}`,
+      // Pattern 4: FK_[table]_[referenced_table]
+      `FK_${cleanFkTable}_${cleanRefTable}`,
+    ];
+    
+    // Try each pattern
+    for (const pattern of namingPatterns) {
+      // Truncate if too long (most databases have constraint name limits around 64 chars)
+      const truncatedName = pattern.length > 63 ? pattern.substring(0, 63) : pattern;
+      
+      if (!usedConstraintNames.has(truncatedName)) {
+        return truncatedName;
+      }
+    }
+    
+    // If all patterns are taken, add a numeric suffix
+    const baseName = namingPatterns[3]; // Use the shortest pattern as base
+    const truncatedBase = baseName.length > 60 ? baseName.substring(0, 60) : baseName;
+    
+    let counter = 1;
+    let uniqueName: string;
+    
+    do {
+      uniqueName = `${truncatedBase}_${counter}`;
+      counter++;
+    } while (usedConstraintNames.has(uniqueName) && counter < 1000);
+    
+    return uniqueName;
   }
   
   private static mapDataType(type: string, dbType: DatabaseType): string {
